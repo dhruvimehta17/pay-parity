@@ -1,0 +1,47 @@
+# -----------------------
+# Node / React Frontend
+# -----------------------
+node_modules/
+build/
+dist/
+.cache/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# -----------------------
+# Python / FastAPI Backend
+# -----------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.egg-info/
+*.log
+output/
+venv/
+.env
+.env.*
+.DS_Store
+
+# -----------------------
+# IDE / System Files
+# -----------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+__MACOSX/
+
+# -----------------------
+# Misc
+# -----------------------
+*.bak
+*.tmp
+*.old
