@@ -42,7 +42,6 @@ from pydantic import BaseModel
 app = FastAPI(title="PayParity Backend API", version="1.0")
 
 # allow your frontend origins
-# allow your frontend origins
 allowed = os.getenv("FRONTEND_ALLOWED_ORIGINS", "")
 if allowed:
     # comma separated list in env var, e.g. "https://pay-parity.vercel.app,http://localhost:8080"
