@@ -20,19 +20,19 @@ import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
 import httpx
-import easyocr
-reader = easyocr.Reader(['en'])
+# import easyocr
+# reader = easyocr.Reader(['en'])
 
 from dotenv import load_dotenv
 load_dotenv()
 
-try:
-    import easyocr
-    reader = easyocr.Reader(['en'])
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
-    print("⚠️ EasyOCR not available. Install with: pip install easyocr")
+# try:
+#     import easyocr
+#     reader = easyocr.Reader(['en'])
+#     OCR_AVAILABLE = True
+# except ImportError:
+#     OCR_AVAILABLE = False
+#     print("⚠️ EasyOCR not available. Install with: pip install easyocr")
 
 from typing import List, Dict, Optional, Literal
 from datetime import datetime
@@ -74,58 +74,80 @@ print("🔹 Loading dataset from", DATASET_PATH)
 salary_dataset = pd.read_csv(DATASET_PATH)
 print(f"✅ Dataset loaded: {len(salary_dataset)} records")
 
+def extract_text_with_ocr_api(file_path: str) -> str:
+    """Extract text from image or PDF using OCR.Space API (free, lightweight)."""
+    api_key = os.getenv("OCR_SPACE_API_KEY", "helloworld")  # Replace with your key in Render
+    try:
+        with open(file_path, "rb") as f:
+            response = requests.post(
+                "https://api.ocr.space/parse/image",
+                files={"file": f},
+                data={"apikey": api_key, "language": "eng"},
+                timeout=60
+            )
+        response.raise_for_status()
+        data = response.json()
+        parsed_text = ""
+        for result in data.get("ParsedResults", []):
+            parsed_text += result.get("ParsedText", "")
+        print(f"OCR.Space extracted {len(parsed_text)} characters.")
+        return parsed_text.strip()
+    except Exception as e:
+        print(f"OCR.Space OCR error: {e}")
+        return ""
+
 # ----------------------------
 # Helpers: extract text with OCR fallback
 # ----------------------------
-def extract_text_with_ocr(file_path: str) -> str:
-    """Extract text from images using EasyOCR"""
-    if not OCR_AVAILABLE:
-        return ""
-    try:
-        print(f"Attempting EasyOCR on: {file_path}")
-        result = reader.readtext(file_path, detail=0)
-        text = " ".join(result)
-        print(f"EasyOCR extracted {len(text)} characters")
-        return text
-    except Exception as e:
-        print(f"OCR error: {e}")
-        return ""
+# def extract_text_with_ocr(file_path: str) -> str:
+#     """Extract text from images using EasyOCR"""
+#     if not OCR_AVAILABLE:
+#         return ""
+#     try:
+#         print(f"Attempting EasyOCR on: {file_path}")
+#         result = reader.readtext(file_path, detail=0)
+#         text = " ".join(result)
+#         print(f"EasyOCR extracted {len(text)} characters")
+#         return text
+#     except Exception as e:
+#         print(f"OCR error: {e}")
+#         return ""
 
-def extract_text_from_pdf_with_ocr(file_path: str) -> str:
-    """Extract text from PDF, use EasyOCR if regular extraction fails"""
-    text = ""
-    try:
-        # Try normal text extraction first
-        with open(file_path, "rb") as f:
-            reader = PdfReader(f)
-            print(f"PDF has {len(reader.pages)} pages")
-            for page in reader.pages:
-                page_text = page.extract_text() or ""
-                text += page_text + "\n"
+# def extract_text_from_pdf_with_ocr(file_path: str) -> str:
+#     """Extract text from PDF, use EasyOCR if regular extraction fails"""
+#     text = ""
+#     try:
+#         # Try normal text extraction first
+#         with open(file_path, "rb") as f:
+#             reader = PdfReader(f)
+#             print(f"PDF has {len(reader.pages)} pages")
+#             for page in reader.pages:
+#                 page_text = page.extract_text() or ""
+#                 text += page_text + "\n"
 
-        # If little text, fallback to EasyOCR
-        if len(text.strip()) < 100 and OCR_AVAILABLE:
-            print(f"Low text extraction ({len(text)} chars), attempting EasyOCR on PDF pages...")
-            try:
-                images = convert_from_path(file_path)
-                ocr_text = ""
-                for i, image in enumerate(images):
-                    temp_img = os.path.join(tempfile.gettempdir(), f"page_{i}.jpg")
-                    image.save(temp_img, "JPEG")
-                    result = reader.readtext(temp_img, detail=0, paragraph=True)
-                    ocr_text += " ".join(result) + "\n"
-                if len(ocr_text.strip()) > len(text.strip()):
-                    print(f"EasyOCR extracted more text: {len(ocr_text)} chars vs {len(text)} chars")
-                    text = ocr_text
-            except Exception as ocr_error:
-                print(f"EasyOCR PDF fallback failed: {ocr_error}")
-        return text
+#         # If little text, fallback to EasyOCR
+#         if len(text.strip()) < 100 and OCR_AVAILABLE:
+#             print(f"Low text extraction ({len(text)} chars), attempting EasyOCR on PDF pages...")
+#             try:
+#                 images = convert_from_path(file_path)
+#                 ocr_text = ""
+#                 for i, image in enumerate(images):
+#                     temp_img = os.path.join(tempfile.gettempdir(), f"page_{i}.jpg")
+#                     image.save(temp_img, "JPEG")
+#                     result = reader.readtext(temp_img, detail=0, paragraph=True)
+#                     ocr_text += " ".join(result) + "\n"
+#                 if len(ocr_text.strip()) > len(text.strip()):
+#                     print(f"EasyOCR extracted more text: {len(ocr_text)} chars vs {len(text)} chars")
+#                     text = ocr_text
+#             except Exception as ocr_error:
+#                 print(f"EasyOCR PDF fallback failed: {ocr_error}")
+#         return text
 
-    except Exception as e:
-        print(f"PDF extraction error: {e}")
-        import traceback
-        traceback.print_exc()
-        return ""
+#     except Exception as e:
+#         print(f"PDF extraction error: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return ""
 
 
 def extract_text_from_resume(file_path: str) -> str:
@@ -135,7 +157,20 @@ def extract_text_from_resume(file_path: str) -> str:
     
     try:
         if ext == "pdf":
-            text = extract_text_from_pdf_with_ocr(file_path)
+            try:
+                with open(file_path, "rb") as f:
+                    reader = PdfReader(f)
+                    text = ""
+                    for page in reader.pages:
+                        text += (page.extract_text() or "") + "\n"
+        # fallback to OCR if needed
+                if len(text.strip()) < 100:
+                    print("Low text extraction, using OCR.Space API...")
+                    text = extract_text_with_ocr_api(file_path)
+            except Exception as e:
+                print("PDF read failed, using OCR.Space API fallback:", e)
+                text = extract_text_with_ocr_api(file_path)
+
         elif ext in ("docx", "doc"):
             doc = Document(file_path)
             text = "\n".join([p.text for p in doc.paragraphs])
@@ -143,8 +178,7 @@ def extract_text_from_resume(file_path: str) -> str:
             with open(file_path, "r", encoding="utf-8") as f:
                 text = f.read()
         elif ext in ("png", "jpg", "jpeg", "tiff", "bmp", "gif"):
-            # Image files - use OCR directly
-            text = extract_text_with_ocr(file_path)
+            text = extract_text_with_ocr_api(file_path)
         else:
             print(f"Unsupported file type: {ext}")
         
@@ -965,7 +999,7 @@ async def chat(req: ChatRequest):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "time": datetime.utcnow().isoformat()}
-    
+
 # ----------------------------
 # Run
 # ----------------------------
