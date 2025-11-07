@@ -3,7 +3,6 @@
 #now should work
 
 # payparity-backend/app.py
-from pydoc import render_doc
 from fastapi import FastAPI, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -25,17 +24,15 @@ import easyocr
 reader = easyocr.Reader(['en'])
 
 from dotenv import load_dotenv
-
 load_dotenv()
+
 try:
     import easyocr
     reader = easyocr.Reader(['en'])
-
     OCR_AVAILABLE = True
-    reader = easyocr.Reader(['en'])
 except ImportError:
     OCR_AVAILABLE = False
-    print("⚠️  EasyOCR not available. Install with: pip install easyocr")
+    print("⚠️ EasyOCR not available. Install with: pip install easyocr")
 
 from typing import List, Dict, Optional, Literal
 from datetime import datetime
@@ -115,7 +112,7 @@ def extract_text_from_pdf_with_ocr(file_path: str) -> str:
                 for i, image in enumerate(images):
                     temp_img = os.path.join(tempfile.gettempdir(), f"page_{i}.jpg")
                     image.save(temp_img, "JPEG")
-                    result = render_doc.readtext(temp_img, detail=0, paragraph=True)
+                    result = reader.readtext(temp_img, detail=0, paragraph=True)
                     ocr_text += " ".join(result) + "\n"
                 if len(ocr_text.strip()) > len(text.strip()):
                     print(f"EasyOCR extracted more text: {len(ocr_text)} chars vs {len(text)} chars")
@@ -965,6 +962,10 @@ async def chat(req: ChatRequest):
     reply = await call_openrouter(messages)
     return ChatResponse(message=reply)
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "time": datetime.utcnow().isoformat()}
+    
 # ----------------------------
 # Run
 # ----------------------------
@@ -974,3 +975,4 @@ if __name__ == "__main__":
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8000))
     )
+
