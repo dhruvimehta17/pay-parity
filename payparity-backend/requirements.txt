@@ -1,17 +1,35 @@
+# ----------------------------
+# Core backend dependencies
+# ----------------------------
 fastapi
 uvicorn
-joblib
-scikit-learn==1.6.1
-xgboost
-pandas
-numpy
-PyPDF2
-python-docx
+python-multipart
+python-dotenv
 requests
 httpx
-pytesseract
-Pillow
+
+# ----------------------------
+# ML + data processing
+# ----------------------------
+pandas
+numpy
+joblib
+scikit-learn
+xgboost
+scipy
+
+# ----------------------------
+# PDF, DOCX, OCR & text extraction
+# ----------------------------
+PyPDF2
+python-docx
 pdf2image
 Pillow
-python-dotenv
+pytesseract
 
+# ----------------------------
+# Date/time utilities
+# ----------------------------
+python-dateutil
+pytz
+tzdata
