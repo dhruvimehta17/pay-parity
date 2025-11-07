@@ -78,7 +78,62 @@ print("✅ Model loaded")
 
 print("🔹 Loading dataset from", DATASET_PATH)
 salary_dataset = pd.read_csv(DATASET_PATH)
-print(f"✅ Dataset loaded: {len(salary_dataset)} records")
+print("✅ Dataset loaded: {len(salary_dataset)} records")
+
+# ----------------------------
+# Normalizers for model inputs
+# ----------------------------
+
+# Allowed locations from dataset to keep categories consistent
+ALLOWED_LOCATIONS = set(salary_dataset['Location'].astype(str).unique())
+
+def normalize_education(level: Optional[str]) -> str:
+    """Map various education strings to the categories used by the model/dataset.
+    Dataset categories: High School, Bachelors, Masters/Postgraduate, PhD/Doctorate
+    """
+    if not level or not isinstance(level, str):
+        return "Bachelors"
+    s = level.strip().lower()
+
+    # Direct keyword checks first
+    if "phd" in s or "ph.d" in s or "doctorate" in s or "dphil" in s:
+        return "PhD/Doctorate"
+    if "master" in s or "postgrad" in s or "pg" == s or "mba" in s or "m.tech" in s or "mtech" in s or "msc" in s or "m.sc" in s or "ms" == s:
+        return "Masters/Postgraduate"
+    if "bachelor" in s or "undergrad" in s or s in {"ug", "btech", "b.tech", "bsc", "b.sc", "be"}:
+        return "Bachelors"
+    if "high school" in s or "secondary" in s or "12" in s or "hsc" in s or "10+2" in s:
+        return "High School"
+
+    # Normalize common canonical values
+    mapping = {
+        "masters": "Masters/Postgraduate",
+        "master": "Masters/Postgraduate",
+        "postgraduate": "Masters/Postgraduate",
+        "bachelors": "Bachelors",
+        "bachelor": "Bachelors",
+        "phd": "PhD/Doctorate",
+        "doctorate": "PhD/Doctorate",
+        "highschool": "High School",
+        "high-school": "High School",
+    }
+    return mapping.get(s, "Bachelors")
+
+
+def normalize_location(location: Optional[str]) -> str:
+    if not location or not isinstance(location, str):
+        return "Remote"
+    s = location.strip()
+    sl = s.lower()
+    if sl in {"remote", "wfh", "work from home", "anywhere"}:
+        return "Remote"
+    candidate = s.title()
+    if candidate in ALLOWED_LOCATIONS:
+        return candidate
+    if s in ALLOWED_LOCATIONS:
+        return s
+    return "Remote"
+
 
 def extract_text_with_ocr_api(file_path: str) -> str:
     """Extract text from image or PDF using OCR.Space API (free, lightweight)."""
@@ -585,9 +640,9 @@ async def predict(
                 print(f"Using LinkedIn-extracted job title: {job_title}")
             
             skills_str = ", ".join(info.get("Skills", [])) if isinstance(info.get("Skills"), list) else info.get("Skills","")
-            education_level = info.get("Education_Level", "Bachelors")
+            education_level = normalize_education(info.get("Education_Level", "Bachelors"))
             exp_years_for_role = float(info.get("Total_Experience_Years", 0))
-            location = info.get("Location", "Other")
+            location = normalize_location(info.get("Location", "Remote"))
         else:
             suffix = "." + (file.filename.split(".")[-1] if file and "." in file.filename else "pdf")
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -636,8 +691,8 @@ async def predict(
                 job_title = "Other"
                 print(f"Job title was None/invalid, defaulting to: {job_title}")
             
-            education_level = info.get("Education_Level", "Bachelors")
-            location = info.get("Location", "Other")
+            education_level = normalize_education(info.get("Education_Level", "Bachelors"))
+            location = normalize_location(info.get("Location", "Remote"))
             exp_years_for_role = compute_experience_for_title(text, job_title)
                     # ---------------------------
         # Validate job title input
@@ -751,7 +806,7 @@ async def predict(
 
         job_cat = detect_job_category(job_title, openrouter_api_key)
         input_df = pd.DataFrame([{
-            "Gender": "Other",
+            "Gender": "Non-binary",  # keep within training categories: Male, Female, Non-binary
             "Job_Title": job_title,
             "Experience_Years": float(exp_years_for_role),
             "Skills_Required": skills_str,
