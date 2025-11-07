@@ -75,7 +75,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onClose }) => {
     setErrorMsg(null);
 
     if (!file && !linkedinUrl) {
-      alert("Please upload a resume or enter your LinkedIn URL.");
+      alert("Please upload a resume");
       return;
     }
     if (!jobTitle.trim()) {
