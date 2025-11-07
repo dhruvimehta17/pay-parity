@@ -13,3 +13,5 @@ pytesseract
 Pillow
 pdf2image
 Pillow
+python-dotenv
+
