@@ -12,3 +12,7 @@ httpx
 pytesseract
 Pillow
 pdf2image
+easyocr
+Pillow
+torch
+torchvision
