@@ -105,9 +105,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onClose }) => {
       if (currentSalary && currentSalary.trim())
         formData.append("current_salary", currentSalary.trim());
 
-      const res = await axios.post(`${BACKEND_URL}/predict`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axios.post(`${BACKEND_URL}/predict`, formData);
 
       // 🔹 If backend returns vague job title error, show on same modal
       if (res.data.status === "error") {
